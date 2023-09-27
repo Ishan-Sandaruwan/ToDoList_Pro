@@ -3,7 +3,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-
+const _ = require("lodash");
 //connect to database
 mongoose
   .connect("mongodb://127.0.0.1:27017/ToDoList", {
@@ -49,6 +49,10 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+
+
+
+
 app.get("/", async function (req, res) {
   try {
     const todos = await Todo.find({});
@@ -68,37 +72,78 @@ app.get("/", async function (req, res) {
   }
 });
 
-app.post("/", function (req, res) {
-  console.log(req.body);
+app.post("/", async function (req, res) {
+  const name = req.body.newItem;
+  const listName = req.body.list;
   const newTodo = new Todo({
-    name: req.body.newItem
+    name: name
   });
-  newTodo.save().then(()=>{
-    res.redirect("/");
-  })
+  if (listName === "Today") {
+    newTodo.save().then(() => {
+      res.redirect("/");
+    });
+  } else {
+    const result = await CustomList.findOne({ listName: listName }).exec();
+    if(result) {
+      result.listItems.push(newTodo);
+      result.save();
+      res.redirect("/" + listName);
+    }else{
+      res.status(500).send("Internal Server Error");
+    }
+  }
 });
 
-app.post("/delete", (req, res) => {
+app.post("/delete",async (req, res) => {
   const id = req.body.checkbox;
-  Todo.findByIdAndDelete(id)
-    .then((deletedTodo) => {
-      if (!deletedTodo) {
-        console.log(`Todo with ID ${id} not found.`);
-        res.redirect("/");
+  const listName = req.body.listName;
+  if(listName==="Today"){
+    Todo.findByIdAndDelete(id)
+      .then((deletedTodo) => {
+        if (!deletedTodo) {
+          console.log(`Todo with ID ${id} not found.`);
+          res.redirect("/");
+        } else {
+          console.log(`Todo with ID ${id} deleted: `, deletedTodo);
+          res.redirect("/");
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(500).send("Error deleting todo.");
+      });
+    }else{
+      CustomList.findOneAndUpdate({ listName: listName }, { $pull: { listItems: { _id: id } } })
+    .then((result) => {
+      if (result === null) {
+        // If result is null, it means the id did not match any items
+        res.status(404).send("Item not found");
       } else {
-        console.log(`Todo with ID ${id} deleted: `, deletedTodo);
-        res.redirect("/");
+        res.redirect("/" + listName);
       }
     })
     .catch((err) => {
       console.log(err);
-      res.status(500).send("Error deleting todo.");
+      res.status(500).send("Internal Server Error");
     });
+
+    // const result = await CustomList.findOne({ listName: listName }).exec();
+    // if(result){
+    //   const index = result.listItems.findIndex(( item )=>{ item._id === id });
+    //   result.listItems.splice(index,1);
+    //   result.save();
+    //   res.redirect("/" + listName);
+    // }else{
+    //   res.status(500).send("Internal Server Error");
+    // }
+    
+  };
+  
 });
 
 app.get("/:customList", async (req, res) => {
   try {
-    const listName = req.params.customList;
+    const listName = _.capitalize(req.params.customList);
     const isOldList = await CustomList.findOne({ listName }).exec();
 
     if (!isOldList) {

@@ -11,12 +11,12 @@
           <input type="checkbox" name="checkbox" value="<%= todo._id %>" onchange="this.form.submit()">
           <p><%= todo.name %></p>
         </div>
-        <!-- <button type="submit">-</button> -->
+        <input type="hidden" name="listName" value="<%= listTitle %>">
       </form>
     <% }) %>    
       <form class="item" action="/" method="post">
         <input type="text" name="newItem" placeholder="New Item" autocomplete="off">
-        <button type="submit" name="list">+</button>
+        <button type="submit" name="list" value="<%= listTitle %>">+</button>
       </form>
   </div>
 
