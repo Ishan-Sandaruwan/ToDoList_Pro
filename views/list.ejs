@@ -5,12 +5,15 @@
   </div>
 
   <div class="box">
-    <% newListItems.forEach((todo)=>{%>
-      <div class="item">
-        <input type="checkbox">
-        <p><%=  todo.name  %></p>
-      </div>
-    <%}) %>
+    <% newListItems.forEach((todo) => { %>
+      <form action="/delete" method="post">
+        <div class="item">
+          <input type="checkbox" name="checkbox" value="<%= todo._id %>" onchange="this.form.submit()">
+          <p><%= todo.name %></p>
+        </div>
+        <!-- <button type="submit">-</button> -->
+      </form>
+    <% }) %>    
       <form class="item" action="/" method="post">
         <input type="text" name="newItem" placeholder="New Item" autocomplete="off">
         <button type="submit" name="list">+</button>
